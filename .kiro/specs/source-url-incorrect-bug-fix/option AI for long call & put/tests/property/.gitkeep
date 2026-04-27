@@ -1,0 +1,4 @@
+# Property-based tests directory
+# Tests that verify universal properties across all inputs using fast-check
+# Each test must run at least 100 iterations
+# Format: Feature: options-trading-tool, Property {number}: {property_text}

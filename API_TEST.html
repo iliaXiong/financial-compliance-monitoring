@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API 连接测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>API 连接测试</h1>
+    
+    <div>
+        <h2>测试配置</h2>
+        <p><strong>API Base URL:</strong> <span id="apiBaseUrl"></span></p>
+        <p><strong>当前页面 URL:</strong> <span id="currentUrl"></span></p>
+    </div>
+
+    <div>
+        <h2>测试操作</h2>
+        <button onclick="testRelativeUrl()">测试相对路径 (/api/tasks)</button>
+        <button onclick="testAbsoluteUrl()">测试绝对路径 (http://localhost:3000/api/tasks)</button>
+        <button onclick="testProxyUrl()">测试代理路径 (http://localhost/api/tasks)</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        // 显示配置
+        const API_BASE_URL = '';  // 模拟前端配置
+        document.getElementById('apiBaseUrl').textContent = API_BASE_URL || '(空字符串 - 使用相对路径)';
+        document.getElementById('currentUrl').textContent = window.location.href;
+
+        function addResult(title, success, message, details) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${success ? 'success' : 'error'}`;
+            resultDiv.innerHTML = `
+                <h3>${title}</h3>
+                <p><strong>状态:</strong> ${success ? '✅ 成功' : '❌ 失败'}</p>
+                <p><strong>消息:</strong> ${message}</p>
+                ${details ? `<pre>${details}</pre>` : ''}
+            `;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        async function testRelativeUrl() {
+            const url = '/api/tasks';
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                addResult(
+                    '相对路径测试',
+                    response.status === 401,  // 401 表示 API 可达，只是未认证
+                    `HTTP ${response.status}: ${response.statusText}`,
+                    JSON.stringify(data, null, 2)
+                );
+            } catch (error) {
+                addResult(
+                    '相对路径测试',
+                    false,
+                    '请求失败',
+                    error.message
+                );
+            }
+        }
+
+        async function testAbsoluteUrl() {
+            const url = 'http://localhost:3000/api/tasks';
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                addResult(
+                    '绝对路径测试 (直接访问后端)',
+                    response.status === 401,
+                    `HTTP ${response.status}: ${response.statusText}`,
+                    JSON.stringify(data, null, 2)
+                );
+            } catch (error) {
+                addResult(
+                    '绝对路径测试 (直接访问后端)',
+                    false,
+                    '请求失败 - 可能是 CORS 问题',
+                    error.message
+                );
+            }
+        }
+
+        async function testProxyUrl() {
+            const url = 'http://localhost/api/tasks';
+            try {
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                const data = await response.json();
+                addResult(
+                    '代理路径测试',
+                    response.status === 401,
+                    `HTTP ${response.status}: ${response.statusText}`,
+                    JSON.stringify(data, null, 2)
+                );
+            } catch (error) {
+                addResult(
+                    '代理路径测试',
+                    false,
+                    '请求失败',
+                    error.message
+                );
+            }
+        }
+
+        // 自动运行相对路径测试
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testRelativeUrl();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

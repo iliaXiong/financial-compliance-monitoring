@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>期权交易助手 - Options Trading Assistant</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <!-- 头部 -->
+    <header class="header">
+      <div class="header-content">
+        <div class="logo">
+          <span class="logo-icon">📊</span>
+          <h1>期权交易助手</h1>
+        </div>
+        <div class="header-info">
+          <span class="status-badge" id="statusBadge">
+            <span class="status-dot"></span>
+            系统运行中
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <!-- 主要内容区 -->
+    <main class="main-content">
+      <!-- 欢迎卡片 -->
+      <div class="welcome-card" id="welcomeCard">
+        <h2>👋 欢迎使用期权交易助手</h2>
+        <p>我可以帮您分析标的资产、评估市场情绪、推荐期权合约</p>
+        <div class="feature-grid">
+          <div class="feature-item">
+            <span class="feature-icon">🔍</span>
+            <span>标的分析</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">📈</span>
+            <span>市场情绪</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">💼</span>
+            <span>期权推荐</span>
+          </div>
+          <div class="feature-item">
+            <span class="feature-icon">🔗</span>
+            <span>交易链接</span>
+          </div>
+        </div>
+        <div class="quick-start">
+          <p>快速开始：</p>
+          <div class="quick-buttons">
+            <button class="quick-btn" onclick="sendQuickMessage('AAPL')">分析 AAPL</button>
+            <button class="quick-btn" onclick="sendQuickMessage('苹果')">分析苹果</button>
+            <button class="quick-btn" onclick="sendQuickMessage('TSLA')">分析 TSLA</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 对话区域 -->
+      <div class="chat-container" id="chatContainer">
+        <!-- 消息将动态添加到这里 -->
+      </div>
+
+      <!-- 加载指示器 -->
+      <div class="loading-indicator" id="loadingIndicator" style="display: none;">
+        <div class="loading-spinner"></div>
+        <span>正在分析...</span>
+      </div>
+    </main>
+
+    <!-- 输入区域 -->
+    <footer class="input-area">
+      <div class="input-container">
+        <input 
+          type="text" 
+          id="userInput" 
+          class="input-field" 
+          placeholder="输入标的代码（如：AAPL）或中文名称（如：苹果）..."
+          autocomplete="off"
+        >
+        <button class="send-button" id="sendButton" onclick="sendMessage()">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <path d="M2 10L18 2L10 18L8 11L2 10Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="input-hints">
+        <span class="hint-item">💡 支持：AAPL、苹果、特斯拉</span>
+        <span class="hint-item">⌨️ 按 Enter 发送</span>
+      </div>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

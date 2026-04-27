@@ -1,0 +1,103 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: financial-compliance-db
+    environment:
+      POSTGRES_DB: financial_compliance
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: financial-compliance-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: financial-compliance-backend
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DEMO_MODE: "true"
+      TZ: Asia/Shanghai
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: financial_compliance
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-change-this-in-production}
+      JWT_EXPIRES_IN: 7d
+      JINA_READER_API_URL: https://r.jina.ai
+      # LLM API Configuration - supports OpenAI and custom endpoints
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4}
+      LLM_API_URL: ${LLM_API_URL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_API_KEY_HEADER: ${LLM_API_KEY_HEADER:-Authorization}
+      LLM_AUTH_PREFIX: ${LLM_AUTH_PREFIX:-Bearer}
+      MAX_PARALLEL_WEBSITES: 5
+      RETRIEVAL_TIMEOUT_MS: 30000
+      # Feature Flags
+      ENABLE_WEBSITE_ANALYZER: ${ENABLE_WEBSITE_ANALYZER:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - app-network
+    restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: financial-compliance-frontend
+    ports:
+      - "80:80"
+    environment:
+      VITE_API_BASE_URL: ""
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  app-network:
+    driver: bridge

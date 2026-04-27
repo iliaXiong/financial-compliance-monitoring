@@ -1,0 +1,40 @@
+{
+  "name": "options-trading-tool",
+  "version": "1.0.0",
+  "description": "AI-powered conversational options trading assistant for Long Call & Long Put strategies",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:property": "vitest run tests/property",
+    "build": "tsc",
+    "dev": "tsx demo.ts",
+    "start": "node dist/demo.js",
+    "web": "node server.mjs",
+    "demo": "node demo-simple.mjs",
+    "lint": "eslint src tests --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\""
+  },
+  "keywords": [
+    "options",
+    "trading",
+    "assistant",
+    "conversational-ai",
+    "long-call",
+    "long-put",
+    "market-analysis"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@vitest/coverage-v8": "^1.6.1",
+    "fast-check": "^3.15.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.6.1"
+  },
+  "dependencies": {}
+}

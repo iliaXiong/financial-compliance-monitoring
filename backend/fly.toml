@@ -1,0 +1,36 @@
+# Fly.io 配置文件
+app = "financial-compliance-backend"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "3000"
+  TZ = "Asia/Shanghai"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = false
+  min_machines_running = 1
+  
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256
+
+# 健康检查
+[[services.http_checks]]
+  interval = "10s"
+  timeout = "2s"
+  grace_period = "5s"
+  method = "get"
+  path = "/health"
+  protocol = "http"

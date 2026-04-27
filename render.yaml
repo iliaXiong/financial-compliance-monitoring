@@ -1,0 +1,52 @@
+# Render 配置文件
+# 可以通过 "Blueprint" 功能一键部署
+
+services:
+  - type: web
+    name: financial-compliance-backend
+    env: node
+    region: singapore
+    plan: free
+    branch: main
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: node dist/index.pgboss.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: TZ
+        value: Asia/Shanghai
+      - key: DB_HOST
+        sync: false  # 需要手动设置
+      - key: DB_PORT
+        value: 5432
+      - key: DB_NAME
+        value: postgres
+      - key: DB_USER
+        value: postgres
+      - key: DB_PASSWORD
+        sync: false  # 需要手动设置
+      - key: JWT_SECRET
+        generateValue: true  # 自动生成
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: JINA_READER_API_URL
+        value: https://r.jina.ai
+      - key: MAX_PARALLEL_WEBSITES
+        value: 5
+      - key: RETRIEVAL_TIMEOUT_MS
+        value: 30000
+      - key: ENABLE_WEBSITE_ANALYZER
+        value: true
+      - key: DEMO_MODE
+        value: false
+      # LLM 配置需要根据实际情况设置
+      - key: LLM_API_URL
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        sync: false

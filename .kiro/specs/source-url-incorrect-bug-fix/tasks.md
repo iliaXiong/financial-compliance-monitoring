@@ -1,0 +1,104 @@
+# Implementation Plan
+
+- [x] 1. Write bug condition exploration test
+  - **Property 1: Bug Condition** - Source URL Extraction and Usage
+  - **CRITICAL**: This test MUST FAIL on unfixed code - failure confirms the bug exists
+  - **DO NOT attempt to fix the test or the code when it fails**
+  - **NOTE**: This test encodes the expected behavior - it will validate the fix when it passes after implementation
+  - **GOAL**: Surface counterexamples that demonstrate the bug exists
+  - **Scoped PBT Approach**: For deterministic bugs, scope the property to the concrete failing case(s) to ensure reproducibility
+  - Test that when LLM returns a search response with `sourceUrl` field (e.g., `sourceUrl: "https://www.nyse.com/markets/hours-calendars"`), the system extracts it into `KeywordMatch` object and uses it when saving retrieval results
+  - The test assertions should verify:
+    - `keywordMatch.sourceUrl === llmResponse.keywordResults[i].sourceUrl` (from Bug Condition in design)
+    - `retrievalResult.sourceUrl === keywordMatch.sourceUrl` (from Bug Condition in design)
+  - Test concrete failing cases:
+    - Sub-page URL: LLM returns `sourceUrl: "https://www.nyse.com/markets/hours-calendars"` but system saves `sourceUrl: "https://www.nyse.com/index"`
+    - Document URL: LLM returns `sourceUrl: "https://www.sec.gov/rules/final/2023/33-11234.pdf"` but system saves `sourceUrl: "https://www.sec.gov"`
+    - Multiple keywords: LLM returns different `sourceUrl` values but system saves all with same `result.websiteUrl`
+  - Run test on UNFIXED code
+  - **EXPECTED OUTCOME**: Test FAILS (this is correct - it proves the bug exists)
+  - Document counterexamples found to understand root cause
+  - Mark task complete when test is written, run, and failure is documented
+  - _Requirements: 2.1, 2.2, 2.3, 2.4_
+
+- [x] 2. Write preservation property tests (BEFORE implementing fix)
+  - **Property 2: Preservation** - Fallback Behavior
+  - **IMPORTANT**: Follow observation-first methodology
+  - Observe behavior on UNFIXED code for non-buggy inputs (cases where LLM response does NOT contain `sourceUrl` field)
+  - Write property-based tests capturing observed behavior patterns from Preservation Requirements:
+    - When LLM response missing `sourceUrl` field, system uses `result.websiteUrl` as fallback
+    - When retrieval fails (status === 'failed'), system uses `result.websiteUrl`
+    - When no keyword matches found (keywordMatches.length === 0), system uses `result.websiteUrl`
+    - Document results (with `documentUrl`) are handled correctly
+    - Other fields (keyword, found, occurrences, contexts) are extracted correctly
+  - Property-based testing generates many test cases for stronger guarantees
+  - Run tests on UNFIXED code
+  - **EXPECTED OUTCOME**: Tests PASS (this confirms baseline behavior to preserve)
+  - Mark task complete when tests are written, run, and passing on unfixed code
+  - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [-] 3. Fix for source URL incorrect bug
+
+  - [x] 3.1 Add sourceUrl field to KeywordMatch interface
+    - Open `backend/src/types/index.ts`
+    - Locate the `KeywordMatch` interface (line 164-169)
+    - Add optional `sourceUrl?: string` field to store the specific URL where the keyword was found
+    - _Bug_Condition: isBugCondition(input) where input.keywordResult.sourceUrl IS_DEFINED AND parsedKeywordMatch.sourceUrl IS_UNDEFINED_
+    - _Expected_Behavior: keywordMatch.sourceUrl === llmResponse.keywordResults[i].sourceUrl from design_
+    - _Preservation: Preservation Requirements from design (fallback behavior, document handling)_
+    - _Requirements: 2.1, 2.4_
+
+  - [x] 3.2 Extract sourceUrl in parseLLMSearchResponse()
+    - Open `backend/src/services/ContentRetriever.ts`
+    - Locate the `parseLLMSearchResponse()` method (line 664-722)
+    - When creating the `keywordMatch` object, extract `result.sourceUrl` from the LLM response
+    - Add `sourceUrl: result.sourceUrl` to the `keywordMatch` object construction (only if `result.sourceUrl` is defined)
+    - Preserve existing document tracking logic
+    - _Bug_Condition: isBugCondition(input) where input.keywordResult.sourceUrl IS_DEFINED AND parsedKeywordMatch.sourceUrl IS_UNDEFINED_
+    - _Expected_Behavior: keywordMatch.sourceUrl === llmResponse.keywordResults[i].sourceUrl from design_
+    - _Preservation: Preservation Requirements from design (other fields extraction, document tracking)_
+    - _Requirements: 2.1, 2.4_
+
+  - [x] 3.3 Use sourceUrl from KeywordMatch in TaskScheduler
+    - Open `backend/src/services/TaskScheduler.ts`
+    - Locate the `executeTask()` method (line 280-350)
+    - Find the section where `keywordMatch` results are saved (around line 315-325)
+    - Change `sourceUrl: result.websiteUrl` to `sourceUrl: keywordMatch.sourceUrl || result.websiteUrl`
+    - Preserve failed retrieval logic (continue using `result.websiteUrl` for failed retrievals)
+    - Preserve document result logic (keep existing `documentUrl` handling)
+    - _Bug_Condition: isBugCondition(input) where input.keywordResult.sourceUrl IS_DEFINED AND retrievalResult uses result.websiteUrl instead_
+    - _Expected_Behavior: retrievalResult.sourceUrl === keywordMatch.sourceUrl from design_
+    - _Preservation: Preservation Requirements from design (fallback to result.websiteUrl when sourceUrl unavailable)_
+    - _Requirements: 2.2, 2.3, 3.1, 3.2_
+
+  - [ ] 3.4 Verify bug condition exploration test now passes
+    - **Property 1: Expected Behavior** - Source URL Extraction and Usage
+    - **IMPORTANT**: Re-run the SAME test from task 1 - do NOT write a new test
+    - The test from task 1 encodes the expected behavior
+    - When this test passes, it confirms the expected behavior is satisfied
+    - Run bug condition exploration test from step 1
+    - **EXPECTED OUTCOME**: Test PASSES (confirms bug is fixed)
+    - Verify that:
+      - `keywordMatch.sourceUrl` is correctly extracted from LLM response
+      - `retrievalResult.sourceUrl` uses `keywordMatch.sourceUrl` instead of `result.websiteUrl`
+      - All concrete failing cases now pass (sub-page URL, document URL, multiple keywords)
+    - _Requirements: 2.1, 2.2, 2.3, 2.4_
+
+  - [ ] 3.5 Verify preservation tests still pass
+    - **Property 2: Preservation** - Fallback Behavior
+    - **IMPORTANT**: Re-run the SAME tests from task 2 - do NOT write new tests
+    - Run preservation property tests from step 2
+    - **EXPECTED OUTCOME**: Tests PASS (confirms no regressions)
+    - Confirm all tests still pass after fix:
+      - Fallback to `result.websiteUrl` when `sourceUrl` missing
+      - Failed retrievals use `result.websiteUrl`
+      - No matches use `result.websiteUrl`
+      - Document results handled correctly
+      - Other fields extracted correctly
+    - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5_
+
+- [ ] 4. Checkpoint - Ensure all tests pass
+  - Run all unit tests, property-based tests, and integration tests
+  - Verify no regressions in existing functionality
+  - Confirm source URLs are correctly extracted and used
+  - Ask the user if questions arise

@@ -1,0 +1,45 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.pgboss.ts",
+    "build": "tsc",
+    "start": "node dist/index.pgboss.js",
+    "start:redis": "node dist/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint src --ext .ts",
+    "migrate": "ts-node src/database/migrate.ts"
+  },
+  "dependencies": {
+    "axios": "^1.5.0",
+    "bcrypt": "^5.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsdom": "^22.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "openai": "^4.11.0",
+    "pg": "^8.11.3",
+    "pg-boss": "^9.0.3"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.0",
+    "@types/cors": "^2.8.13",
+    "@types/express": "^4.17.17",
+    "@types/jest": "^29.5.3",
+    "@types/jsdom": "^21.1.3",
+    "@types/jsonwebtoken": "^9.0.2",
+    "@types/node": "^20.5.0",
+    "@types/pg": "^8.10.2",
+    "@types/supertest": "^7.2.0",
+    "fast-check": "^3.13.0",
+    "jest": "^29.6.2",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.1.1",
+    "ts-node": "^10.9.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3"
+  }
+}
