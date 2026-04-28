@@ -37,5 +37,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
 
-# Run migrations and start app
-CMD ["sh", "-c", "npm run migrate && npm start"]
+# Start app (migrations should be run manually or via Railway setup)
+CMD ["npm", "start"]
