@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { config } from './config';
 import { pool } from './config/database';
 import apiRoutes from './routes';
+import { setTaskScheduler } from './routes/tasks';
 import { errorHandler, notFoundHandler } from './middleware';
 import { TaskScheduler } from './services/TaskScheduler.pgboss';
 
@@ -91,6 +92,9 @@ async function startServer() {
     // Start pg-boss task scheduler
     await taskScheduler.start();
     console.log('✅ Task scheduler started (pg-boss)');
+
+    // Inject TaskScheduler instance into routes
+    setTaskScheduler(taskScheduler);
 
     // Start Express server
     app.listen(PORT, () => {

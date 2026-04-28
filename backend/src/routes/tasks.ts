@@ -1,12 +1,24 @@
 import { Router, Response } from 'express';
 import { TaskManager } from '../services/TaskManager';
-import { TaskScheduler } from '../services/TaskScheduler.pgboss';
 import { authenticate, AuthRequest, asyncHandler, AppError } from '../middleware';
 import { CreateTaskDTO, UpdateTaskDTO, TaskStatus } from '../types';
 
 const router = Router();
 const taskManager = new TaskManager();
-export const taskScheduler = new TaskScheduler();
+
+// TaskScheduler instance will be injected from index.pgboss.ts
+let taskSchedulerInstance: any = null;
+
+export function setTaskScheduler(scheduler: any) {
+  taskSchedulerInstance = scheduler;
+}
+
+function getTaskScheduler() {
+  if (!taskSchedulerInstance) {
+    throw new Error('TaskScheduler not initialized');
+  }
+  return taskSchedulerInstance;
+}
 
 /**
  * POST /api/tasks
@@ -26,7 +38,7 @@ router.post(
       const task = await taskManager.createTask(userId, taskData);
 
       // Schedule task for execution
-      await taskScheduler.scheduleTask(task);
+      await getTaskScheduler().scheduleTask(task);
 
       // Re-fetch task to get updated nextExecutionAt after scheduling
       const updatedTask = await taskManager.getTask(task.id, userId);
@@ -125,8 +137,8 @@ router.put(
 
       // If schedule was updated, reschedule the task
       if (updates.schedule && updatedTask.status === 'active') {
-        await taskScheduler.unscheduleTask(taskId);
-        await taskScheduler.scheduleTask(updatedTask);
+        await getTaskScheduler().unscheduleTask(taskId);
+        await getTaskScheduler().scheduleTask(updatedTask);
       }
 
       res.json(updatedTask);
@@ -170,11 +182,11 @@ router.patch(
       if (status === 'paused') {
         updatedTask = await taskManager.pauseTask(taskId, userId);
         // Unschedule the task
-        await taskScheduler.unscheduleTask(taskId);
+        await getTaskScheduler().unscheduleTask(taskId);
       } else {
         updatedTask = await taskManager.resumeTask(taskId, userId);
         // Reschedule the task
-        await taskScheduler.scheduleTask(updatedTask);
+        await getTaskScheduler().scheduleTask(updatedTask);
       }
 
       res.json(updatedTask);
@@ -212,7 +224,7 @@ router.delete(
 
     try {
       // Unschedule task before deletion
-      await taskScheduler.unscheduleTask(taskId);
+      await getTaskScheduler().unscheduleTask(taskId);
       
       // Soft delete task
       await taskManager.deleteTask(taskId, userId);
@@ -248,7 +260,7 @@ router.post(
       await taskManager.getTask(taskId, userId);
 
       // Trigger execution
-      const executionId = await taskScheduler.executeTask(taskId);
+      const executionId = await getTaskScheduler().executeTask(taskId);
 
       res.json({ executionId });
     } catch (error: any) {
