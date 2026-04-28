@@ -58,9 +58,12 @@ export class TaskScheduler implements ITaskScheduler {
     console.log('[TaskScheduler] Initializing with pg-boss (PostgreSQL queue)');
     
     // Initialize pg-boss with PostgreSQL connection
+    const host = dbConfig?.host || process.env.DB_HOST;
+    const needsSSL = host?.includes('supabase.com');
+    
     const connectionString = dbConfig 
-      ? `postgresql://${dbConfig.user}:${dbConfig.password}@${dbConfig.host}:${dbConfig.port}/${dbConfig.database}`
-      : `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`;
+      ? `postgresql://${dbConfig.user}:${dbConfig.password}@${dbConfig.host}:${dbConfig.port}/${dbConfig.database}${needsSSL ? '?sslmode=require' : ''}`
+      : `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}${needsSSL ? '?sslmode=require' : ''}`;
 
     this.boss = new PgBoss({
       connectionString,
@@ -70,6 +73,7 @@ export class TaskScheduler implements ITaskScheduler {
       retryBackoff: true,
       expireInHours: 24,
       archiveCompletedAfterSeconds: 60 * 60 * 24 * 7,  // 7 days
+      ssl: needsSSL ? { rejectUnauthorized: false } : undefined,
     });
 
     // Initialize repositories and services
