@@ -66,7 +66,7 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Start server
-const PORT = config.port;
+const PORT = config.server.port;
 
 async function startServer() {
   try {

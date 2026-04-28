@@ -1,14 +1,18 @@
 node_modules
-npm-debug.log
 dist
+npm-debug.log
 .env
-.env.*
-*.md
+.env.local
+.DS_Store
+*.log
+coverage
 .git
 .gitignore
+README.md
 .vscode
 .idea
-coverage
-.DS_Store
-*.test.ts
-__tests__
+
+# Exclude Redis-related files (we use pg-boss, these are renamed to .bak)
+src/config/redis.ts.bak
+src/services/TaskScheduler.ts.bak
+src/index.ts.bak

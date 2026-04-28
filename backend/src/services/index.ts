@@ -12,4 +12,4 @@ export {
 } from './SubagentOrchestrator';
 export { AnalysisService } from './AnalysisService';
 export { TaskManager } from './TaskManager';
-export { TaskScheduler, ITaskScheduler } from './TaskScheduler';
+export { TaskScheduler, ITaskScheduler } from './TaskScheduler.pgboss';

@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import { TaskManager } from '../services/TaskManager';
-import { TaskScheduler } from '../services/TaskScheduler';
+import { TaskScheduler } from '../services/TaskScheduler.pgboss';
 import { authenticate, AuthRequest, asyncHandler, AppError } from '../middleware';
 import { CreateTaskDTO, UpdateTaskDTO, TaskStatus } from '../types';
 
