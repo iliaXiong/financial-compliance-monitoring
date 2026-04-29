@@ -294,7 +294,7 @@ export class TaskScheduler implements ITaskScheduler {
       const orchestrationResult = await this.subagentOrchestrator.executeParallel(
         task.targetWebsites,
         task.keywords,
-        120000 // 2 minutes timeout
+        300000 // 5 minutes timeout (increased from 2 minutes to handle slow LLM responses)
       );
 
       // Step 2: Save retrieval results to database

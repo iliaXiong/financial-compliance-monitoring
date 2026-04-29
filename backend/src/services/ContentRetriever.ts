@@ -592,6 +592,7 @@ export class ContentRetriever implements IContentRetriever {
     keywordMatches: KeywordMatch[];
     documentResults: DocumentRetrievalResult[];
   }> {
+    const startTime = Date.now();
     console.log(`[ContentRetriever] Using LLM to search for keywords in ${websiteUrl}`);
 
     // Build comprehensive prompt for LLM
@@ -605,7 +606,10 @@ export class ContentRetriever implements IContentRetriever {
 
     try {
       // Call LLM to perform intelligent search
+      console.log(`[ContentRetriever] Calling LLM API...`);
       const llmResponse = await this.callLLM(prompt);
+      const llmDuration = Date.now() - startTime;
+      console.log(`[ContentRetriever] LLM API responded in ${llmDuration}ms`);
       
       // Debug: Log LLM response
       console.log(`[ContentRetriever] LLM response (first 500 chars):`, llmResponse.substring(0, 500));
@@ -618,12 +622,14 @@ export class ContentRetriever implements IContentRetriever {
         documentContents
       );
 
-      console.log(`[ContentRetriever] LLM search completed: found ${searchResult.keywordMatches.filter(k => k.found).length}/${keywords.length} keywords`);
+      const totalDuration = Date.now() - startTime;
+      console.log(`[ContentRetriever] LLM search completed in ${totalDuration}ms: found ${searchResult.keywordMatches.filter(k => k.found).length}/${keywords.length} keywords`);
       console.log(`[ContentRetriever] Keyword matches:`, JSON.stringify(searchResult.keywordMatches.map(k => ({keyword: k.keyword, found: k.found}))));
 
       return searchResult;
     } catch (error) {
-      console.error(`[ContentRetriever] LLM search failed:`, this.getErrorMessage(error));
+      const duration = Date.now() - startTime;
+      console.error(`[ContentRetriever] LLM search failed after ${duration}ms:`, this.getErrorMessage(error));
       
       // Fallback to simple keyword matching if LLM fails
       console.log(`[ContentRetriever] Falling back to simple keyword matching`);
@@ -859,7 +865,7 @@ ${mainText}
         requestBody,
         {
           headers,
-          timeout: 60000 // 60 seconds for LLM
+          timeout: 120000 // 120 seconds for LLM (increased to handle slow responses)
         }
       );
 
