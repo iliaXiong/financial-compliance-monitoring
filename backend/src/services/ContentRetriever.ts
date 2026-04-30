@@ -2,6 +2,8 @@ import axios, { AxiosError } from 'axios';
 import { JSDOM } from 'jsdom';
 import { WebsiteAnalyzer, IWebsiteAnalyzer } from './WebsiteAnalyzer';
 import { KeywordMatch } from '../types';
+import { llmWebSearchOptimized, OPTIMIZED_SYSTEM_PROMPT } from './ContentRetriever.optimized';
+import { DebugInfo } from './DebugLogger';
 
 /**
  * ContentRetriever interface
@@ -28,6 +30,7 @@ export interface ContentRetrievalResult {
   documentResults: DocumentRetrievalResult[];
   error?: string;
   retrievedAt: Date;
+  debugInfo?: DebugInfo[];
 }
 
 /**
@@ -139,6 +142,7 @@ export class ContentRetriever implements IContentRetriever {
         keywordMatches: llmSearchResult.keywordMatches,
         documentResults: llmSearchResult.documentResults,
         retrievedAt: startTime,
+        debugInfo: llmSearchResult.debugInfo,
       };
     } catch (error) {
       const errorMessage = this.getErrorMessage(error);
@@ -570,7 +574,7 @@ export class ContentRetriever implements IContentRetriever {
   }
 
   /**
-   * Use LLM to search for keywords across website content
+   * Use LLM to search for keywords across website content (OPTIMIZED VERSION)
    * @param websiteUrl - The main website URL
    * @param keywords - Keywords to search for
    * @param mainPageContent - Content from the main page
@@ -591,55 +595,19 @@ export class ContentRetriever implements IContentRetriever {
   ): Promise<{
     keywordMatches: KeywordMatch[];
     documentResults: DocumentRetrievalResult[];
+    debugInfo?: DebugInfo[];
   }> {
-    const startTime = Date.now();
-    console.log(`[ContentRetriever] Using LLM to search for keywords in ${websiteUrl}`);
-
-    // Build comprehensive prompt for LLM
-    const prompt = this.buildLLMSearchPrompt(
+    // 使用优化后的实现
+    return llmWebSearchOptimized(
       websiteUrl,
       keywords,
       mainPageContent,
       subPageContents,
-      documentContents
+      documentContents,
+      this.extractTextContent.bind(this),
+      this.callLLM.bind(this),
+      this.getErrorMessage.bind(this)
     );
-
-    try {
-      // Call LLM to perform intelligent search
-      console.log(`[ContentRetriever] Calling LLM API...`);
-      const llmResponse = await this.callLLM(prompt);
-      const llmDuration = Date.now() - startTime;
-      console.log(`[ContentRetriever] LLM API responded in ${llmDuration}ms`);
-      
-      // Debug: Log LLM response
-      console.log(`[ContentRetriever] LLM response (first 500 chars):`, llmResponse.substring(0, 500));
-
-      // Parse LLM response
-      const searchResult = this.parseLLMSearchResponse(
-        llmResponse,
-        keywords,
-        subPageContents,
-        documentContents
-      );
-
-      const totalDuration = Date.now() - startTime;
-      console.log(`[ContentRetriever] LLM search completed in ${totalDuration}ms: found ${searchResult.keywordMatches.filter(k => k.found).length}/${keywords.length} keywords`);
-      console.log(`[ContentRetriever] Keyword matches:`, JSON.stringify(searchResult.keywordMatches.map(k => ({keyword: k.keyword, found: k.found}))));
-
-      return searchResult;
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      console.error(`[ContentRetriever] LLM search failed after ${duration}ms:`, this.getErrorMessage(error));
-      
-      // Fallback to simple keyword matching if LLM fails
-      console.log(`[ContentRetriever] Falling back to simple keyword matching`);
-      return this.fallbackKeywordSearch(
-        keywords,
-        mainPageContent,
-        subPageContents,
-        documentContents
-      );
-    }
   }
 
   /**
@@ -795,48 +763,8 @@ ${mainText}
       headers[this.llmApiKeyHeader] = authValue;
 
       // Extract websiteUrl and keywords from prompt for system message
-      const websiteUrlMatch = prompt.match(/目标网站: (.+)/);
-      const keywordsMatch = prompt.match(/搜索关键词: (.+)/);
-      const websiteUrl = websiteUrlMatch ? websiteUrlMatch[1].split('\n')[0].trim() : '';
-      const keywords = keywordsMatch ? keywordsMatch[1].split('\n')[0].trim() : '';
-
-      const systemPrompt = `你是一个金融合规政策分析专家。请在${websiteUrl}域名下搜索${keywords}相关内容，总结每个关键词的定义/解释/描述，并以JSON格式返回总结内容。
-
-# 技能：
-1. 调用Jina Reader读取网站信息
-2. 在金融语境下理解关键词
-3. 在查找结果中分析关键词的定义/解释/描述
-
-# 限制：
-返回总结文本必须为JSON格式
-
-# 输出格式要求：
-你必须严格按照以下JSON格式返回结果，不要包含任何其他文本：
-
-{
-  "keywordResults": [
-    {
-      "keyword": "关键词1",
-      "found": true,
-      "content": "关键词的完整定义和解释...",
-      "sourceUrl": "https://example.com/page1",
-      "context": "在此页面中，关键词1被定义为..."
-    },
-    {
-      "keyword": "关键词2",
-      "found": false,
-      "content": "",
-      "sourceUrl": "",
-      "context": ""
-    }
-  ]
-}
-
-# 注意事项：
-- 如果关键词在多个页面/文档中出现，选择最详细和权威的一个
-- 如果未找到关键词，设置 found 为 false，content、sourceUrl 和 context 为空字符串
-- 提取完整的定义和解释，而不仅仅是包含关键词的句子
-- 只返回有效的 JSON，不要包含任何额外的文本、解释或markdown格式`;
+      // 使用优化后的system prompt
+      const systemPrompt = OPTIMIZED_SYSTEM_PROMPT;
 
       const requestBody: any = {
         model: this.llmModel,

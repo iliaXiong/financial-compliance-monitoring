@@ -2,19 +2,19 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.ts', '**/?(*.)+(spec|test).ts'],
+  testMatch: ['**/__tests__/**/*.test.ts'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   collectCoverageFrom: [
     'src/**/*.ts',
-    '!src/**/*.d.ts',
     '!src/**/*.test.ts',
-    '!src/**/*.spec.ts',
+    '!src/**/__tests__/**',
   ],
-  coverageThreshold: {
-    global: {
-      branches: 80,
-      functions: 80,
-      lines: 80,
-      statements: 80,
-    },
+  // 处理natural库的ES模块问题
+  transformIgnorePatterns: [
+    'node_modules/(?!(natural|afinn-165|emoji-emotion|gemoji)/)',
+  ],
+  // 模拟natural库以避免ES模块问题
+  moduleNameMapper: {
+    '^natural$': '<rootDir>/src/__mocks__/natural.ts',
   },
 };

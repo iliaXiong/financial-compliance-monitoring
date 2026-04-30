@@ -167,6 +167,8 @@ export interface KeywordMatch {
   occurrences: number;
   contexts: string[];
   sourceUrl?: string; // The specific sub-page or document URL where the keyword was found
+  confidence?: number; // LLM confidence score (0.0-1.0)
+  error?: string; // Error message if processing failed
 }
 
 // WebsiteAnalyzer types
