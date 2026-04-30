@@ -50,21 +50,18 @@ describe('ContentRetriever - Optimized Integration Tests', () => {
 
   describe('retrieveFromWebsite with optimization', () => {
     it('should use SimpleRetriever to chunk and retrieve content', async () => {
-      // Mock网页内容
-      const mockHtmlContent = `
-        <html>
-          <body>
-            <h1>Financial Compliance Policy</h1>
-            <p>Anti-money laundering (AML) refers to the laws, regulations, and procedures intended to prevent criminals from disguising illegally obtained funds as legitimate income. Financial institutions must establish comprehensive AML programs.</p>
-            <p>Customer due diligence (CDD) is a critical component of AML compliance. It involves verifying the identity of customers and assessing their risk profile. Enhanced due diligence may be required for high-risk customers.</p>
-            <p>Data retention policies require financial institutions to maintain records for a minimum of five years. This includes transaction records, customer identification documents, and compliance reports.</p>
-          </body>
-        </html>
-      `;
+      // Mock网页内容 - 使用纯文本格式（模拟Jina Reader的输出）
+      const mockTextContent = `Financial Compliance Policy
+
+Anti-money laundering (AML) refers to the laws, regulations, and procedures intended to prevent criminals from disguising illegally obtained funds as legitimate income. Financial institutions must establish comprehensive AML programs.
+
+Customer due diligence (CDD) is a critical component of AML compliance. It involves verifying the identity of customers and assessing their risk profile. Enhanced due diligence may be required for high-risk customers.
+
+Data retention policies require financial institutions to maintain records for a minimum of five years. This includes transaction records, customer identification documents, and compliance reports.`;
 
       // Mock Jina Reader响应
       mockedAxios.get.mockResolvedValueOnce({
-        data: mockHtmlContent,
+        data: mockTextContent,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -125,19 +122,17 @@ describe('ContentRetriever - Optimized Integration Tests', () => {
     it('should limit chunks to MAX_CHUNKS_PER_KEYWORD', async () => {
       process.env.MAX_CHUNKS_PER_KEYWORD = '5';
 
-      // 创建一个很长的内容，会生成很多chunks
+      // 创建一个很长的内容，会生成很多chunks - 使用纯文本格式
       const longContent = Array(20)
         .fill(0)
         .map(
           (_, i) =>
-            `<p>Paragraph ${i + 1}: This is a long paragraph about financial compliance that contains important information about regulations and requirements. It needs to be long enough to be retained as a valid chunk in the system.</p>`
+            `Paragraph ${i + 1}: This is a long paragraph about financial compliance that contains important information about regulations and requirements. It needs to be long enough to be retained as a valid chunk in the system.`
         )
-        .join('\n');
-
-      const mockHtmlContent = `<html><body>${longContent}</body></html>`;
+        .join('\n\n');
 
       mockedAxios.get.mockResolvedValueOnce({
-        data: mockHtmlContent,
+        data: longContent,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -174,16 +169,10 @@ describe('ContentRetriever - Optimized Integration Tests', () => {
     });
 
     it('should validate quoted sentence and sourceUrl', async () => {
-      const mockHtmlContent = `
-        <html>
-          <body>
-            <p>This is the actual content that exists in the page. Financial institutions must comply with regulations.</p>
-          </body>
-        </html>
-      `;
+      const mockTextContent = `This is the actual content that exists in the page. Financial institutions must comply with regulations.`;
 
       mockedAxios.get.mockResolvedValueOnce({
-        data: mockHtmlContent,
+        data: mockTextContent,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -225,16 +214,10 @@ describe('ContentRetriever - Optimized Integration Tests', () => {
     });
 
     it('should handle multiple keywords efficiently', async () => {
-      const mockHtmlContent = `
-        <html>
-          <body>
-            <p>Anti-money laundering (AML) is important. Customer due diligence (CDD) is required. Data retention must be maintained for five years.</p>
-          </body>
-        </html>
-      `;
+      const mockTextContent = `Anti-money laundering (AML) is important. Customer due diligence (CDD) is required. Data retention must be maintained for five years.`;
 
       mockedAxios.get.mockResolvedValue({
-        data: mockHtmlContent,
+        data: mockTextContent,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -287,16 +270,10 @@ describe('ContentRetriever - Optimized Integration Tests', () => {
     });
 
     it('should calculate token usage and cost', async () => {
-      const mockHtmlContent = `
-        <html>
-          <body>
-            <p>Test content for token calculation. This paragraph needs to be long enough to be retained as a valid chunk.</p>
-          </body>
-        </html>
-      `;
+      const mockTextContent = `Test content for token calculation. This paragraph needs to be long enough to be retained as a valid chunk.`;
 
       mockedAxios.get.mockResolvedValueOnce({
-        data: mockHtmlContent,
+        data: mockTextContent,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -344,16 +321,10 @@ describe('ContentRetriever - Optimized Integration Tests', () => {
     });
 
     it('should handle LLM errors gracefully', async () => {
-      const mockHtmlContent = `
-        <html>
-          <body>
-            <p>Test content that will cause LLM to fail. This paragraph needs to be long enough to be retained as a valid chunk.</p>
-          </body>
-        </html>
-      `;
+      const mockTextContent = `Test content that will cause LLM to fail. This paragraph needs to be long enough to be retained as a valid chunk.`;
 
       mockedAxios.get.mockResolvedValueOnce({
-        data: mockHtmlContent,
+        data: mockTextContent,
         status: 200,
         statusText: 'OK',
         headers: {},
@@ -380,16 +351,10 @@ describe('ContentRetriever - Optimized Integration Tests', () => {
     it('should not include debug info when DEBUG_MODE is false', async () => {
       process.env.DEBUG_MODE = 'false';
 
-      const mockHtmlContent = `
-        <html>
-          <body>
-            <p>Test content without debug mode. This paragraph needs to be long enough to be retained as a valid chunk.</p>
-          </body>
-        </html>
-      `;
+      const mockTextContent = `Test content without debug mode. This paragraph needs to be long enough to be retained as a valid chunk.`;
 
       mockedAxios.get.mockResolvedValueOnce({
-        data: mockHtmlContent,
+        data: mockTextContent,
         status: 200,
         statusText: 'OK',
         headers: {},
