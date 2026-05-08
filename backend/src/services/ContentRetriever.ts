@@ -744,7 +744,7 @@ ${mainText}
   }
 
   /**
-   * Call LLM API
+   * Call LLM API with streaming support
    */
   private async callLLM(prompt: string): Promise<string> {
     if (!this.llmApiKey) {
@@ -752,73 +752,118 @@ ${mainText}
     }
 
     try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json'
-      };
+      // 使用优化后的system prompt
+      const systemPrompt = OPTIMIZED_SYSTEM_PROMPT;
+
+      const messages = [
+        {
+          role: 'system',
+          content: systemPrompt
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ];
 
       const authValue = this.llmAuthPrefix 
         ? `${this.llmAuthPrefix} ${this.llmApiKey}`
         : this.llmApiKey;
-      
-      headers[this.llmApiKeyHeader] = authValue;
 
-      // Extract websiteUrl and keywords from prompt for system message
-      // 使用优化后的system prompt
-      const systemPrompt = OPTIMIZED_SYSTEM_PROMPT;
-
-      const requestBody: any = {
+      const requestBody = {
         model: this.llmModel,
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt
-          },
-          {
-            role: 'user',
-            content: prompt
-          }
-        ],
+        messages: messages,
         temperature: 0,
-        max_tokens: 3000
+        max_tokens: 3000,
+        stream: true // 启用流式响应
       };
 
-      // Only add response_format for OpenAI-compatible APIs
-      // Some APIs (like Webull's Claude) may not support this parameter
-      if (this.llmApiUrl.includes('openai.com')) {
-        requestBody.response_format = { type: 'json_object' };
-      }
+      console.log('[ContentRetriever] Calling LLM API with streaming:', this.llmApiUrl);
 
       const response = await axios.post(
         this.llmApiUrl,
         requestBody,
         {
-          headers,
-          timeout: 120000 // 120 seconds for LLM (increased to handle slow responses)
+          headers: {
+            [this.llmApiKeyHeader]: authValue,
+            'Content-Type': 'application/json'
+          },
+          timeout: 120000,
+          responseType: 'stream' // 接收流式响应
         }
       );
 
-      if (!response.data.choices || response.data.choices.length === 0) {
-        throw new Error('LLM API returned no choices');
-      }
-
-      let content = response.data.choices[0].message.content.trim();
+      // 处理流式响应
+      let fullContent = '';
       
-      // Try to extract JSON from markdown code blocks if present
-      const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
-      if (jsonMatch) {
-        content = jsonMatch[1];
-      }
-      
-      // Remove any leading/trailing non-JSON text
-      const jsonStart = content.indexOf('{');
-      const jsonEnd = content.lastIndexOf('}');
-      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-        content = content.substring(jsonStart, jsonEnd + 1);
-      }
+      return new Promise((resolve, reject) => {
+        response.data.on('data', (chunk: Buffer) => {
+          const lines = chunk.toString().split('\n').filter(line => line.trim() !== '');
+          
+          for (const line of lines) {
+            // SSE格式: data: {...}
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6); // 移除 "data: " 前缀
+              
+              // 检查是否是结束标记
+              if (data === '[DONE]') {
+                continue;
+              }
+              
+              try {
+                const parsed = JSON.parse(data);
+                
+                // 提取内容
+                if (parsed.choices && parsed.choices[0]?.delta?.content) {
+                  const content = parsed.choices[0].delta.content;
+                  fullContent += content;
+                  
+                  // 可选：实时输出进度
+                  if (fullContent.length % 100 === 0) {
+                    console.log(`[ContentRetriever] Streaming progress: ${fullContent.length} chars`);
+                  }
+                }
+              } catch (parseError) {
+                // 忽略解析错误，继续处理下一行
+                console.warn('[ContentRetriever] Failed to parse stream chunk:', data);
+              }
+            }
+          }
+        });
 
-      return content;
+        response.data.on('end', () => {
+          console.log('[ContentRetriever] Stream completed, total length:', fullContent.length);
+          
+          // 处理完整内容
+          let content = fullContent.trim();
+          
+          // Try to extract JSON from markdown code blocks if present
+          const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+          if (jsonMatch) {
+            content = jsonMatch[1];
+          }
+          
+          // Remove any leading/trailing non-JSON text
+          const jsonStart = content.indexOf('{');
+          const jsonEnd = content.lastIndexOf('}');
+          if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+            content = content.substring(jsonStart, jsonEnd + 1);
+          }
+
+          resolve(content);
+        });
+
+        response.data.on('error', (error: Error) => {
+          console.error('[ContentRetriever] Stream error:', error);
+          reject(error);
+        });
+      });
+
     } catch (error) {
       console.error('[ContentRetriever] Error calling LLM API:', error);
+      if (axios.isAxiosError(error) && error.response) {
+        console.error('[ContentRetriever] API response:', error.response.data);
+      }
       throw new Error(`Failed to call LLM API: ${this.getErrorMessage(error)}`);
     }
   }
